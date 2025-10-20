@@ -1,0 +1,11 @@
+[Unit]
+Description=swww daemon (Wayland wallpaper)
+
+
+[Service]
+ExecStart=swww-daemon --no-cache
+Restart=on-failure
+
+
+[Install]
+WantedBy=default.target

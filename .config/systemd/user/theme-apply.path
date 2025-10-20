@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch for wal color changes
+
+
+[Path]
+PathChanged=%h/.cache/wal/colors.json
+
+
+[Install]
+WantedBy=default.target

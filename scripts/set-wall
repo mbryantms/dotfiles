@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# Set wallpaper via swww and propagate colors via pywal, then reload components
+set -euo pipefail
+
+
+img="${1:-}"
+if [ -z "$img" ]; then
+echo "Usage: set-wall /path/to/image" >&2
+exit 1
+fi
+
+
+# Ensure swww daemon is running
+swww query >/dev/null 2>&1 || swww-daemon --no-cache &
+
+
+# Set wallpaper (smooth transition)
+swww img "$img" --transition-type any --transition-step 90 --transition-fps 60
+
+
+# Generate theme from image
+wal -i "$img" -n -t # -n: no terminal reload, -t: theme darkening for terminals
+
+
+# Waybar reload (reads wal.css include)
+killall -SIGUSR2 waybar 2>/dev/null || true
+
+
+# Rofi will read new theme file on next open
+
+
+# Kitty live-reload via remote control (requires kitty.conf settings below)
+if command -v kitty &>/dev/null; then
+kitty @ set-colors --all "$HOME/.cache/wal/colors-kitty.conf" 2>/dev/null || true
+fi
+
+
+# Mako reload
+killall mako 2>/dev/null || true
+mako &>/dev/null &
+
+
+# Hyprland touch-up (re-apply border/active colors from wal export if used)
+hyprctl reload || true

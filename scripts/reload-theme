@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Re-apply pywal colors to running apps without changing wallpaper
+set -euo pipefail
+
+
+# Waybar
+killall -SIGUSR2 waybar 2>/dev/null || true
+# Kitty
+kitty @ set-colors --all "$HOME/.cache/wal/colors-kitty.conf" 2>/dev/null || true
+# Mako
+killall mako 2>/dev/null || true
+mako &>/dev/null &
+# Hyprland
+hyprctl reload || true

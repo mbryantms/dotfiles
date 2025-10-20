@@ -1,0 +1,7 @@
+[Unit]
+Description=Apply theme when wal colors update
+
+
+[Service]
+Type=oneshot
+ExecStart=%h/dotfiles/scripts/reload-theme

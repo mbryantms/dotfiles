@@ -1,0 +1,5 @@
+configuration {
+modi: "drun,run";
+font: "JetBrainsMono Nerd Font 12";
+theme: "~/.config/rofi/themes/wal.rasi";
+}
