@@ -6,6 +6,7 @@ A comprehensive, modular dotfiles configuration for Arch Linux featuring Hyprlan
 
 - **Hyprland**: Modern Wayland compositor with smooth animations and excellent performance
 - **Pywal Integration**: Dynamic color schemes from wallpapers applied across all applications
+- **Universal Clipboard**: Omarchy-style unified clipboard shortcuts that work in terminals AND GUI apps
 - **Modular Configuration**: Clean, organized configs split into logical files
 - **Beautiful UI**: Waybar, Rofi, Mako notifications with consistent theming
 - **Productivity Tools**: Tmux, Zsh/Bash with useful aliases and functions
@@ -56,7 +57,7 @@ sudo pacman -S hyprland hyprlock hypridle waybar mako rofi kitty \
 # Utilities
 sudo pacman -S grim slurp wl-clipboard cliphist brightnessctl \
     swww python-pywal networkmanager bluez bluez-utils \
-    pipewire wireplumber pavucontrol thunar
+    pipewire wireplumber pavucontrol thunar wtype
 
 # Fonts
 sudo pacman -S ttf-jetbrains-mono-nerd ttf-font-awesome
@@ -146,11 +147,23 @@ Modular configs in `~/.config/hypr/conf.d/`:
 | `SUPER + E` | File manager (Thunar) |
 | `SUPER + Q` | Close window |
 | `SUPER + F` | Fullscreen |
-| `SUPER + V` | Toggle floating |
+| `SUPER + T` | Toggle floating |
 | `SUPER + SHIFT + E` | Exit Hyprland |
 | `SUPER + SHIFT + X` | Power menu |
 | `SUPER + CTRL + L` | Lock screen |
-| `SUPER + CTRL + V` | Clipboard history |
+
+#### Universal Clipboard (Omarchy-style)
+
+These work everywhere - terminals AND GUI applications!
+
+| Keybind | Action |
+|---------|--------|
+| `SUPER + C` | Copy (works in terminals and apps) |
+| `SUPER + V` | Paste (works in terminals and apps) |
+| `SUPER + X` | Cut (GUI apps only) |
+| `SUPER + CTRL + V` | Clipboard history manager |
+
+**How it works:** Automatically detects terminal windows and sends `Ctrl+Shift+C/V` for terminals or `Ctrl+C/V` for other apps. No more remembering different shortcuts!
 
 #### Window Navigation
 
@@ -198,6 +211,32 @@ Pywal integration affects:
 - Mako notification colors
 - Hyprland border colors
 - GTK applications (partially)
+
+### Universal Clipboard System
+
+Inspired by Omarchy, this setup provides unified clipboard shortcuts that work seamlessly across terminals and GUI applications.
+
+**The Problem:**
+- Terminals use `Ctrl+Shift+C/V` for copy/paste
+- GUI apps use `Ctrl+C/V` for copy/paste
+- You have to remember which shortcut to use where
+
+**The Solution:**
+- `Super+C` - Copy (works everywhere)
+- `Super+V` - Paste (works everywhere)
+- `Super+X` - Cut (GUI apps)
+
+**How it works:**
+The universal-clipboard script automatically detects if you're in a terminal window and sends the appropriate key combination:
+- **In terminals** (kitty, alacritty, etc.): Sends `Ctrl+Shift+C/V`
+- **In other apps**: Sends `Ctrl+C/V`
+
+**Requirements:**
+- `wtype` (preferred, installed by default) or `ydotool` (fallback)
+- `jq` for JSON parsing
+
+**Supported terminals:**
+Automatically detected: kitty, Alacritty, foot, konsole, gnome-terminal, xfce4-terminal, terminator, tilix, and more.
 
 ### Monitors
 

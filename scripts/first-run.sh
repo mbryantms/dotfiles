@@ -100,6 +100,8 @@ check_package "wl-copy" "wl-clipboard"
 check_package "swww" "swww"
 check_package "wal" "python-pywal"
 check_package "brightnessctl" "brightnessctl"
+check_package "wtype" "wtype"
+check_package "jq" "jq"
 
 if [ ${#MISSING_PACKAGES[@]} -gt 0 ]; then
     warn "Missing packages detected:"
