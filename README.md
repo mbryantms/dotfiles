@@ -35,11 +35,12 @@ A comprehensive, modular dotfiles configuration for Arch Linux featuring Hyprlan
 - **GTK/Qt theming**: Consistent appearance across toolkits
 
 ### Utilities
-- **grim + slurp**: Screenshot utilities
+- **grimblast** or **grim + slurp**: Screenshot utilities (grimblast recommended for Hyprland)
 - **wl-clipboard**: Clipboard management
 - **cliphist**: Clipboard history
 - **brightnessctl**: Backlight control
 - **pipewire**: Audio server
+- **swappy**: Screenshot editor (optional)
 
 ## Installation
 
@@ -62,7 +63,10 @@ sudo pacman -S ttf-jetbrains-mono-nerd ttf-font-awesome
 
 # Optional but recommended
 sudo pacman -S starship zoxide fzf htop tmux neovim firefox \
-    jq bc playerctl
+    jq bc playerctl swappy
+
+# AUR packages (recommended) - use your AUR helper (paru, yay, etc.)
+paru -S grimblast-git    # Better screenshot tool for Hyprland
 ```
 
 ### Using GNU Stow (Recommended)
@@ -163,8 +167,11 @@ Modular configs in `~/.config/hypr/conf.d/`:
 | Keybind | Action |
 |---------|--------|
 | `SUPER + S` | Screenshot area to clipboard |
-| `SUPER + SHIFT + S` | Screenshot area to file |
-| `SUPER + CTRL + S` | Screenshot area to editor (swappy) |
+| `SUPER + SHIFT + S` | Screenshot area & save to file |
+| `SUPER + CTRL + S` | Screenshot active window & save |
+| `SUPER + ALT + S` | Screenshot full screen & save |
+
+**Note:** Uses `grimblast` if installed (recommended), automatically falls back to `grim + slurp`.
 
 #### Wallpaper & Theme
 
@@ -258,6 +265,31 @@ Enable/disable modules in `~/.config/waybar/config.jsonc`:
 ```json
 "modules-right": ["network", "pulseaudio", "cpu", "memory", "battery", "tray"]
 ```
+
+### Screenshot Tools
+
+The configuration supports both **grimblast** (recommended) and **grim + slurp** (fallback).
+
+**Why grimblast?**
+- Better Hyprland integration
+- Easier syntax and usage
+- Can capture active windows without geometry calculations
+- Per-output screenshot support
+- Built-in notification support
+
+**Installation:**
+```bash
+# grimblast (AUR - recommended)
+paru -S grimblast-git
+
+# OR grim + slurp (official repos - fallback)
+sudo pacman -S grim slurp
+
+# Optional: screenshot editor
+sudo pacman -S swappy
+```
+
+The screenshot script automatically detects which tool is available and uses grimblast if present.
 
 ## Troubleshooting
 

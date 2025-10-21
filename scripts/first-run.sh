@@ -96,8 +96,6 @@ check_package "waybar" "waybar"
 check_package "mako" "mako"
 check_package "rofi" "rofi"
 check_package "kitty" "kitty"
-check_package "grim" "grim"
-check_package "slurp" "slurp"
 check_package "wl-copy" "wl-clipboard"
 check_package "swww" "swww"
 check_package "wal" "python-pywal"
@@ -112,6 +110,19 @@ if [ ${#MISSING_PACKAGES[@]} -gt 0 ]; then
     echo "Install them with:"
     echo "  sudo pacman -S ${MISSING_PACKAGES[*]}"
     echo ""
+fi
+
+# Check for screenshot tools (grimblast preferred, grim+slurp fallback)
+info "Checking screenshot tools..."
+if command -v grimblast &>/dev/null; then
+    echo "  ✓ grimblast found (excellent!)"
+elif command -v grim &>/dev/null && command -v slurp &>/dev/null; then
+    echo "  ✓ grim + slurp found (works, but grimblast is recommended)"
+    echo "    Consider: paru -S grimblast-git"
+else
+    warn "No screenshot tool found!"
+    echo "  Install grimblast (recommended): paru -S grimblast-git"
+    echo "  OR install grim+slurp: sudo pacman -S grim slurp"
 fi
 
 # Set up initial theme
