@@ -1,7 +1,12 @@
 [Unit]
 Description=Apply theme when wal colors update
+After=graphical-session.target
 
 
 [Service]
 Type=oneshot
-ExecStart=%h/dotfiles/scripts/reload-theme
+ExecStart=%h/.local/bin/reload-theme
+
+
+[Install]
+WantedBy=default.target

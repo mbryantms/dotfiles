@@ -1,0 +1,52 @@
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Shell history
+.zsh_history
+.bash_history
+
+# Cache and temporary files
+*.cache
+*.tmp
+*.log
+.cache/
+__pycache__/
+
+# Generated files
+*.pyc
+*.pyo
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Local configuration (machine-specific)
+.local/
+*.local
+
+# SSH keys and secrets
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+*.gpg
+
+# Compiled files
+*.o
+*.so
+*.out
+a.out
+
+# Package manager
+node_modules/
+vendor/
+
+# Backups
+*.bak
+*.backup
+*.old

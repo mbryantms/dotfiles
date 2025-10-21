@@ -3,12 +3,47 @@
 set -euo pipefail
 
 
-# Waybar
+# Update symlinks for theme files
+ln -sf "$HOME/.cache/wal/waybar-wal.css" "$HOME/.config/waybar/wal.css"
+
+
+# Waybar reload
 killall -SIGUSR2 waybar 2>/dev/null || true
-# Kitty
-kitty @ set-colors --all "$HOME/.cache/wal/colors-kitty.conf" 2>/dev/null || true
-# Mako
-killall mako 2>/dev/null || true
+
+
+# Kitty live-reload
+if command -v kitty &>/dev/null; then
+    kitty @ set-colors --all "$HOME/.cache/wal/colors-kitty.conf" 2>/dev/null || true
+fi
+
+
+# Mako reload
+if pgrep -x mako >/dev/null; then
+    killall mako 2>/dev/null || true
+    sleep 0.5
+fi
 mako &>/dev/null &
-# Hyprland
-hyprctl reload || true
+
+
+# Update Hyprland border colors
+if [ -f "$HOME/.cache/wal/colors.sh" ]; then
+    source "$HOME/.cache/wal/colors.sh"
+    hyprctl keyword general:col.active_border "rgba(${color4##\#}ee)" 2>/dev/null || true
+    hyprctl keyword general:col.inactive_border "rgba(${color0##\#}aa)" 2>/dev/null || true
+fi
+
+
+# Update GTK theme
+if [ -f "$HOME/.cache/wal/colors-gtk.css" ]; then
+    mkdir -p "$HOME/.config/gtk-3.0"
+    cat > "$HOME/.config/gtk-3.0/gtk.css" <<EOF
+@import url("file://$HOME/.cache/wal/colors-gtk.css");
+EOF
+    # Reload GTK theme
+    if command -v gsettings &>/dev/null; then
+        gsettings set org.gnome.desktop.interface gtk-theme "Adwaita-dark"
+    fi
+fi
+
+
+notify-send "Theme Reloaded" "All components updated with current colors" -t 2000 2>/dev/null || true

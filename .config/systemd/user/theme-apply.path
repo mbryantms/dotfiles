@@ -1,10 +1,12 @@
 [Unit]
 Description=Watch for wal color changes
+After=graphical-session.target
 
 
 [Path]
 PathChanged=%h/.cache/wal/colors.json
+Unit=theme-apply.service
 
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target

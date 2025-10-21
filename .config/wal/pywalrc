@@ -1,0 +1,10 @@
+# Pywal configuration
+
+# Backend to use for image processing
+backend = "wal"
+
+# Templates directory
+templates_dir = "$HOME/.config/wal/templates"
+
+# Post-generation hook
+post_hook = "$HOME/.config/wal/scripts/post-wal.sh"

@@ -1,0 +1,8 @@
+# Pywal colors for Mako - Auto-generated
+background-color={background}
+text-color={foreground}
+border-color={color4}
+progress-color=over {color2}
+
+[urgency=high]
+border-color={color1}

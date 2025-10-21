@@ -5,40 +5,62 @@ set -euo pipefail
 
 img="${1:-}"
 if [ -z "$img" ]; then
-echo "Usage: set-wall /path/to/image" >&2
-exit 1
+    echo "Usage: set-wall /path/to/image" >&2
+    echo "Example: set-wall ~/Pictures/Wallpapers/image.png" >&2
+    exit 1
+fi
+
+if [ ! -f "$img" ]; then
+    echo "Error: File '$img' does not exist" >&2
+    exit 1
 fi
 
 
 # Ensure swww daemon is running
-swww query >/dev/null 2>&1 || swww-daemon --no-cache &
+if ! swww query >/dev/null 2>&1; then
+    swww-daemon --no-cache &
+    sleep 1
+fi
 
 
 # Set wallpaper (smooth transition)
 swww img "$img" --transition-type any --transition-step 90 --transition-fps 60
 
 
-# Generate theme from image
-wal -i "$img" -n -t # -n: no terminal reload, -t: theme darkening for terminals
+# Generate theme from image with templates
+# -n: no terminal reload, -t: theme darkening, -e: skip reloading env
+wal -i "$img" -n -t -e
+
+
+# Create symlinks for theme files
+ln -sf "$HOME/.cache/wal/waybar-wal.css" "$HOME/.config/waybar/wal.css"
 
 
 # Waybar reload (reads wal.css include)
 killall -SIGUSR2 waybar 2>/dev/null || true
 
 
-# Rofi will read new theme file on next open
-
-
-# Kitty live-reload via remote control (requires kitty.conf settings below)
+# Kitty live-reload via remote control
 if command -v kitty &>/dev/null; then
-kitty @ set-colors --all "$HOME/.cache/wal/colors-kitty.conf" 2>/dev/null || true
+    kitty @ set-colors --all "$HOME/.cache/wal/colors-kitty.conf" 2>/dev/null || true
 fi
 
 
 # Mako reload
-killall mako 2>/dev/null || true
+if pgrep -x mako >/dev/null; then
+    killall mako 2>/dev/null || true
+    sleep 0.5
+fi
 mako &>/dev/null &
 
 
-# Hyprland touch-up (re-apply border/active colors from wal export if used)
-hyprctl reload || true
+# Update Hyprland border colors from pywal
+if [ -f "$HOME/.cache/wal/colors.sh" ]; then
+    source "$HOME/.cache/wal/colors.sh"
+    hyprctl keyword general:col.active_border "rgba(${color4##\#}ee)" 2>/dev/null || true
+    hyprctl keyword general:col.inactive_border "rgba(${color0##\#}aa)" 2>/dev/null || true
+fi
+
+
+# Notify success
+notify-send "Wallpaper Changed" "Theme colors updated" -t 2000 2>/dev/null || true

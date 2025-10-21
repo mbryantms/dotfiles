@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Screenshot utility with options
+
+set -euo pipefail
+
+# Ensure Screenshots directory exists
+mkdir -p "$HOME/Pictures/Screenshots"
+
+# Get timestamp
+timestamp=$(date +%F_%T)
+filename="$HOME/Pictures/Screenshots/screenshot_${timestamp}.png"
+
+# Options
+area="Area"
+screen="Full Screen"
+window="Window"
+delay5="Delay 5s"
+
+# Show menu
+choice=$(echo -e "$area\n$screen\n$window\n$delay5" | rofi -dmenu -i -p "Screenshot" -theme-str 'window {width: 250px;}')
+
+# Execute choice
+case "$choice" in
+    "$area")
+        grim -g "$(slurp)" "$filename" && notify-send "Screenshot saved" "$filename" -i "$filename"
+        ;;
+    "$screen")
+        grim "$filename" && notify-send "Screenshot saved" "$filename" -i "$filename"
+        ;;
+    "$window")
+        # Get active window geometry
+        grim -g "$(hyprctl activewindow -j | jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')" "$filename" && \
+        notify-send "Screenshot saved" "$filename" -i "$filename"
+        ;;
+    "$delay5")
+        notify-send "Screenshot in 5 seconds..." "Get ready!"
+        sleep 5
+        grim "$filename" && notify-send "Screenshot saved" "$filename" -i "$filename"
+        ;;
+    *)
+        exit 1
+        ;;
+esac
+
+# Copy to clipboard
+wl-copy < "$filename"

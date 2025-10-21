@@ -1,13 +1,2 @@
-/* Minimal rofi theme that pulls pywal colors */
-* {
-background: #00000000;
-bg: @background;
-fg: @foreground;
-selected: @color1;
-}
-
-
-@import "~/.cache/wal/colors-rofi-dark.rasi"
-
-
-window { transparency: "real"; background-color: @bg; }
+/* Pywal-based theme for rofi */
+@import "~/.cache/wal/colors-rofi.rasi"
