@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Comprehensive launcher inspired by Omarchy
+# Main menu dispatcher for various launcher modes
+set -euo pipefail
+
+LAUNCHER_DIR="$HOME/.config/hypr/scripts/launcher-modules"
+
+# Main menu options
+main_menu() {
+    echo "Applications"
+    echo "Package Manager"
+    echo "Theme Manager"
+    echo "System Settings"
+    echo "Quick Actions"
+}
+
+# Show main menu
+choice=$(main_menu | rofi -dmenu -i -p "Launcher" -theme-str 'window {width: 400px;}')
+
+case "$choice" in
+    "Applications")
+        "$LAUNCHER_DIR/apps"
+        ;;
+    "Package Manager")
+        "$LAUNCHER_DIR/packages"
+        ;;
+    "Theme Manager")
+        "$LAUNCHER_DIR/themes"
+        ;;
+    "System Settings")
+        "$LAUNCHER_DIR/settings"
+        ;;
+    "Quick Actions")
+        "$LAUNCHER_DIR/quick-actions"
+        ;;
+    *)
+        exit 0
+        ;;
+esac

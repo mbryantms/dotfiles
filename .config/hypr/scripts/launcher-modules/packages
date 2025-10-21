@@ -1,0 +1,279 @@
+#!/usr/bin/env bash
+# Package manager - Install/remove from Arch repos and AUR
+set -euo pipefail
+
+# Check for AUR helper
+AUR_HELPER=""
+if command -v paru &>/dev/null; then
+    AUR_HELPER="paru"
+elif command -v yay &>/dev/null; then
+    AUR_HELPER="yay"
+fi
+
+# Main menu
+show_menu() {
+    echo "Search & Install Package"
+    echo "Search AUR"
+    echo "Update System"
+    echo "Remove Package"
+    echo "Clean Package Cache"
+    echo "Installed Packages"
+    echo "Install Common Apps"
+}
+
+choice=$(show_menu | rofi -dmenu -i -p "Package Manager" -theme-str 'window {width: 400px;}')
+
+case "$choice" in
+    "Search & Install Package")
+        search_and_install
+        ;;
+    "Search AUR")
+        search_aur
+        ;;
+    "Update System")
+        update_system
+        ;;
+    "Remove Package")
+        remove_package
+        ;;
+    "Clean Package Cache")
+        clean_cache
+        ;;
+    "Installed Packages")
+        list_installed
+        ;;
+    "Install Common Apps")
+        install_common
+        ;;
+esac
+
+# Search and install from official repos
+search_and_install() {
+    query=$(rofi -dmenu -p "Search packages" -theme-str 'window {width: 600px;}')
+
+    if [ -z "$query" ]; then
+        exit 0
+    fi
+
+    # Search packages
+    results=$(pacman -Ss "$query" 2>/dev/null | grep -v "^    " | sed 's/^[^ ]* //' || echo "No results")
+
+    if [ "$results" = "No results" ]; then
+        notify-send "Package Search" "No packages found for: $query"
+        exit 0
+    fi
+
+    # Show results
+    pkg=$(echo "$results" | rofi -dmenu -i -p "Select package to install" -theme-str 'window {width: 700px;}' | awk '{print $1}')
+
+    if [ -n "$pkg" ]; then
+        # Install in terminal
+        kitty --hold bash -c "sudo pacman -S $pkg" &
+    fi
+}
+
+# Search AUR
+search_aur() {
+    if [ -z "$AUR_HELPER" ]; then
+        notify-send "AUR Helper Not Found" "Install paru or yay to search AUR" -u critical
+        exit 1
+    fi
+
+    query=$(rofi -dmenu -p "Search AUR" -theme-str 'window {width: 600px;}')
+
+    if [ -z "$query" ]; then
+        exit 0
+    fi
+
+    # Search AUR
+    results=$($AUR_HELPER -Ss "^$query" 2>/dev/null | grep -v "^    " | sed 's/^[^ ]* //' || echo "No results")
+
+    if [ "$results" = "No results" ]; then
+        notify-send "AUR Search" "No packages found for: $query"
+        exit 0
+    fi
+
+    # Show results
+    pkg=$(echo "$results" | rofi -dmenu -i -p "Select AUR package" -theme-str 'window {width: 700px;}' | awk '{print $1}')
+
+    if [ -n "$pkg" ]; then
+        # Install in terminal
+        kitty --hold bash -c "$AUR_HELPER -S $pkg" &
+    fi
+}
+
+# Update system
+update_system() {
+    options="Update Official Repos\nUpdate AUR Packages\nFull System Update"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Update")
+
+    case "$choice" in
+        "Update Official Repos")
+            kitty --hold bash -c "sudo pacman -Syu" &
+            ;;
+        "Update AUR Packages")
+            if [ -n "$AUR_HELPER" ]; then
+                kitty --hold bash -c "$AUR_HELPER -Sua" &
+            else
+                notify-send "AUR Helper Not Found" "Install paru or yay" -u critical
+            fi
+            ;;
+        "Full System Update")
+            if [ -n "$AUR_HELPER" ]; then
+                kitty --hold bash -c "$AUR_HELPER -Syu" &
+            else
+                kitty --hold bash -c "sudo pacman -Syu" &
+            fi
+            ;;
+    esac
+}
+
+# Remove package
+remove_package() {
+    # List installed packages
+    pkg=$(pacman -Qq | rofi -dmenu -i -p "Select package to remove" -theme-str 'window {width: 600px;}')
+
+    if [ -n "$pkg" ]; then
+        # Confirm removal
+        confirm=$(echo -e "Yes\nNo" | rofi -dmenu -p "Remove $pkg?")
+
+        if [ "$confirm" = "Yes" ]; then
+            kitty --hold bash -c "sudo pacman -Rns $pkg" &
+        fi
+    fi
+}
+
+# Clean package cache
+clean_cache() {
+    options="Clean Pacman Cache\nClean AUR Cache\nClean Both"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Clean Cache")
+
+    case "$choice" in
+        "Clean Pacman Cache")
+            kitty --hold bash -c "sudo pacman -Sc" &
+            ;;
+        "Clean AUR Cache")
+            if [ -n "$AUR_HELPER" ]; then
+                kitty --hold bash -c "$AUR_HELPER -Sc" &
+            fi
+            ;;
+        "Clean Both")
+            if [ -n "$AUR_HELPER" ]; then
+                kitty --hold bash -c "sudo pacman -Sc && $AUR_HELPER -Sc" &
+            else
+                kitty --hold bash -c "sudo pacman -Sc" &
+            fi
+            ;;
+    esac
+}
+
+# List installed packages
+list_installed() {
+    options="Official Packages\nAUR Packages\nAll Packages\nRecently Installed"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Installed Packages")
+
+    case "$choice" in
+        "Official Packages")
+            pacman -Qn | awk '{print $1}' | rofi -dmenu -i -p "Official Packages" -theme-str 'window {width: 600px;}'
+            ;;
+        "AUR Packages")
+            pacman -Qm | awk '{print $1}' | rofi -dmenu -i -p "AUR Packages" -theme-str 'window {width: 600px;}'
+            ;;
+        "All Packages")
+            pacman -Qq | rofi -dmenu -i -p "All Packages" -theme-str 'window {width: 600px;}'
+            ;;
+        "Recently Installed")
+            expac --timefmt='%Y-%m-%d %T' '%l\t%n' | sort -r | head -n 50 | rofi -dmenu -i -p "Recent" -theme-str 'window {width: 700px;}'
+            ;;
+    esac
+}
+
+# Install common applications
+install_common() {
+    categories="Development\nInternet\nMultimedia\nOffice\nGames\nUtilities"
+
+    category=$(echo -e "$categories" | rofi -dmenu -i -p "Category")
+
+    case "$category" in
+        "Development")
+            install_development_apps
+            ;;
+        "Internet")
+            install_internet_apps
+            ;;
+        "Multimedia")
+            install_multimedia_apps
+            ;;
+        "Office")
+            install_office_apps
+            ;;
+        "Games")
+            install_games
+            ;;
+        "Utilities")
+            install_utilities
+            ;;
+    esac
+}
+
+install_development_apps() {
+    apps="visual-studio-code-bin\nneovim\ngit\ndocker\npython\nnodejs\nrust\ngo"
+    selected=$(echo -e "$apps" | rofi -dmenu -multi-select -p "Select dev tools")
+
+    if [ -n "$selected" ]; then
+        kitty --hold bash -c "$AUR_HELPER -S $selected" &
+    fi
+}
+
+install_internet_apps() {
+    apps="firefox\nchromium\ndiscord\nslack-desktop\nthunderbird\ntransmission-gtk"
+    selected=$(echo -e "$apps" | rofi -dmenu -multi-select -p "Select internet apps")
+
+    if [ -n "$selected" ]; then
+        pkgs=$(echo "$selected" | tr '\n' ' ')
+        kitty --hold bash -c "sudo pacman -S $pkgs" &
+    fi
+}
+
+install_multimedia_apps() {
+    apps="mpv\nvlc\ngimp\ninkscape\nkdenlive\nobs-studio\naudacity\nspotify"
+    selected=$(echo -e "$apps" | rofi -dmenu -multi-select -p "Select multimedia apps")
+
+    if [ -n "$selected" ]; then
+        pkgs=$(echo "$selected" | tr '\n' ' ')
+        kitty --hold bash -c "sudo pacman -S $pkgs || $AUR_HELPER -S $pkgs" &
+    fi
+}
+
+install_office_apps() {
+    apps="libreoffice-fresh\nokular\ncalibre\nthunderbird\nzathura\nzathura-pdf-mupdf"
+    selected=$(echo -e "$apps" | rofi -dmenu -multi-select -p "Select office apps")
+
+    if [ -n "$selected" ]; then
+        pkgs=$(echo "$selected" | tr '\n' ' ')
+        kitty --hold bash -c "sudo pacman -S $pkgs" &
+    fi
+}
+
+install_games() {
+    apps="steam\nlutris\nwine\nwinetricks\ngamemode\nlib32-vulkan-icd-loader"
+    selected=$(echo -e "$apps" | rofi -dmenu -multi-select -p "Select gaming tools")
+
+    if [ -n "$selected" ]; then
+        pkgs=$(echo "$selected" | tr '\n' ' ')
+        kitty --hold bash -c "sudo pacman -S $pkgs" &
+    fi
+}
+
+install_utilities() {
+    apps="btop\nhtop\nneofetch\nfastfetch\nranger\nyazi\nfzf\nripgrep\nfd\nbat\nexa"
+    selected=$(echo -e "$apps" | rofi -dmenu -multi-select -p "Select utilities")
+
+    if [ -n "$selected" ]; then
+        pkgs=$(echo "$selected" | tr '\n' ' ')
+        kitty --hold bash -c "sudo pacman -S $pkgs" &
+    fi
+}

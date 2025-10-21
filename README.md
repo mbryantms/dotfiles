@@ -5,8 +5,11 @@ A comprehensive, modular dotfiles configuration for Arch Linux featuring Hyprlan
 ## Features
 
 - **Hyprland**: Modern Wayland compositor with smooth animations and excellent performance
+- **Comprehensive Launcher**: Omarchy-inspired launcher for apps, packages, themes, and system settings
 - **Pywal Integration**: Dynamic color schemes from wallpapers applied across all applications
 - **Universal Clipboard**: Omarchy-style unified clipboard shortcuts that work in terminals AND GUI apps
+- **Package Manager**: Install/remove packages from Arch repos and AUR directly from launcher
+- **Theme Manager**: Change wallpapers, color schemes, GTK themes, icons, and more
 - **Modular Configuration**: Clean, organized configs split into logical files
 - **Beautiful UI**: Waybar, Rofi, Mako notifications with consistent theming
 - **Productivity Tools**: Tmux, Zsh/Bash with useful aliases and functions
@@ -143,6 +146,7 @@ Modular configs in `~/.config/hypr/conf.d/`:
 |---------|--------|
 | `SUPER + Return` | Launch terminal (Kitty) |
 | `SUPER + Space` | Application launcher (Rofi) |
+| `SUPER + D` | **Comprehensive Launcher** (Omarchy-inspired) |
 | `SUPER + B` | Launch browser (Firefox) |
 | `SUPER + E` | File manager (Thunar) |
 | `SUPER + Q` | Close window |
@@ -237,6 +241,110 @@ The universal-clipboard script automatically detects if you're in a terminal win
 
 **Supported terminals:**
 Automatically detected: kitty, Alacritty, foot, konsole, gnome-terminal, xfce4-terminal, terminator, tilix, and more.
+
+### Comprehensive Launcher System
+
+Inspired by Omarchy, this setup includes a powerful all-in-one launcher accessible with `Super+D` that provides:
+
+#### Launcher Features
+
+**1. Applications**
+- Launch GUI applications
+- Launch TUI (terminal) applications
+- Categorized app browsing (Development, Internet, Multimedia, Office, System Tools)
+- Favorites management
+- Recent applications
+
+**2. Package Manager**
+- Search and install from Arch official repositories
+- Search and install from AUR (requires paru or yay)
+- Update system (official repos, AUR, or both)
+- Remove packages with dependency removal
+- Clean package cache
+- View installed packages (official, AUR, all, recent)
+- Install common applications by category
+
+**3. Theme Manager**
+- Change wallpaper with instant preview
+- Random wallpaper selection
+- Pre-made color schemes (Dark, Light, Nord, Dracula, Gruvbox, Solarized, Monokai, etc.)
+- GTK theme switcher
+- Icon theme switcher
+- Cursor theme switcher
+- Font settings
+- Export current theme configuration
+
+**4. System Settings**
+- Display settings (resolution, refresh rate, scale, rotation)
+- Audio settings (opens pavucontrol)
+- Network settings (Network Manager)
+- Bluetooth settings
+- Power management (idle timeout, lock timer, power profiles)
+- Input devices (keyboard layout, mouse, touchpad)
+- Hyprland settings (animations, borders, gaps, blur, shadows)
+- Startup applications
+
+**5. Quick Actions**
+- Screenshot with multiple modes
+- Screen recording (requires wf-recorder)
+- Color picker (requires hyprpicker)
+- Clipboard history
+- Emoji picker (requires rofimoji)
+- Calculator
+- File search (uses fd if available)
+- Process manager (htop/btop)
+- System monitor
+- Disk usage analyzer
+- Network information
+- System information
+- Kill active window
+- Reload Waybar/Hyprland
+
+#### Using the Launcher
+
+```bash
+# Press Super+D to open the main launcher menu
+
+# Then select from:
+- Applications    # Browse and launch apps
+- Package Manager # Install/remove software
+- Theme Manager   # Customize appearance
+- System Settings # Configure system
+- Quick Actions   # Common tasks
+```
+
+#### Package Installation Examples
+
+The launcher makes it easy to install software:
+
+1. Press `Super+D` → `Package Manager` → `Search & Install Package`
+2. Type package name (e.g., "firefox")
+3. Select from results
+4. Package installs in a terminal window
+
+For AUR packages:
+1. Press `Super+D` → `Package Manager` → `Search AUR`
+2. Type AUR package name (e.g., "visual-studio-code-bin")
+3. Select and install
+
+Or install by category:
+1. Press `Super+D` → `Package Manager` → `Install Common Apps`
+2. Choose category (Development, Internet, Multimedia, etc.)
+3. Multi-select packages
+4. Install all at once
+
+#### Theme Customization
+
+Change your entire theme instantly:
+
+1. Press `Super+D` → `Theme Manager` → `Change Wallpaper`
+2. Select wallpaper → pywal automatically generates colors
+3. All apps update with new color scheme
+
+Or apply preset color schemes:
+1. Press `Super+D` → `Theme Manager` → `Color Schemes`
+2. Choose scheme (Nord, Dracula, Gruvbox, etc.)
+3. Hyprland colors update immediately
 
 ### Monitors
 

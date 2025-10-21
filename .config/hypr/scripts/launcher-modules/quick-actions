@@ -1,0 +1,255 @@
+#!/usr/bin/env bash
+# Quick actions menu
+set -euo pipefail
+
+# Main menu
+show_menu() {
+    echo "Screenshot"
+    echo "Screen Recording"
+    echo "Color Picker"
+    echo "Clipboard History"
+    echo "Emoji Picker"
+    echo "Calculator"
+    echo "File Search"
+    echo "Process Manager"
+    echo "System Monitor"
+    echo "Disk Usage"
+    echo "Network Info"
+    echo "System Info"
+    echo "Kill Window"
+    echo "Reload Waybar"
+    echo "Reload Hyprland"
+}
+
+choice=$(show_menu | rofi -dmenu -i -p "Quick Actions" -theme-str 'window {width: 400px;}')
+
+case "$choice" in
+    "Screenshot")
+        screenshot_menu
+        ;;
+    "Screen Recording")
+        screen_recording
+        ;;
+    "Color Picker")
+        color_picker
+        ;;
+    "Clipboard History")
+        cliphist list | rofi -dmenu -i -p "Clipboard" | cliphist decode | wl-copy
+        ;;
+    "Emoji Picker")
+        emoji_picker
+        ;;
+    "Calculator")
+        calculator
+        ;;
+    "File Search")
+        file_search
+        ;;
+    "Process Manager")
+        kitty htop &
+        ;;
+    "System Monitor")
+        if command -v btop &>/dev/null; then
+            kitty btop &
+        else
+            kitty htop &
+        fi
+        ;;
+    "Disk Usage")
+        disk_usage
+        ;;
+    "Network Info")
+        network_info
+        ;;
+    "System Info")
+        system_info
+        ;;
+    "Kill Window")
+        hyprctl dispatch killactive
+        ;;
+    "Reload Waybar")
+        killall waybar && waybar &
+        notify-send "Waybar" "Reloaded"
+        ;;
+    "Reload Hyprland")
+        hyprctl reload
+        notify-send "Hyprland" "Configuration reloaded"
+        ;;
+esac
+
+# Screenshot menu
+screenshot_menu() {
+    options="Area\nFull Screen\nActive Window\nArea + Edit"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Screenshot")
+
+    case "$choice" in
+        "Area")
+            ~/.local/bin/screenshot-hypr area save
+            ;;
+        "Full Screen")
+            ~/.local/bin/screenshot-hypr screen save
+            ;;
+        "Active Window")
+            ~/.local/bin/screenshot-hypr active save
+            ;;
+        "Area + Edit")
+            if command -v grimblast &>/dev/null; then
+                grimblast save area - | swappy -f -
+            else
+                grim -g "$(slurp)" - | swappy -f -
+            fi
+            ;;
+    esac
+}
+
+# Screen recording
+screen_recording() {
+    if pgrep -x wf-recorder >/dev/null; then
+        # Stop recording
+        killall -INT wf-recorder
+        notify-send "Screen Recording" "Recording stopped"
+    else
+        # Start recording
+        options="Area\nFull Screen\nActive Window"
+
+        choice=$(echo -e "$options" | rofi -dmenu -i -p "Record")
+
+        RECORD_DIR="$HOME/Videos/Recordings"
+        mkdir -p "$RECORD_DIR"
+        filename="$RECORD_DIR/recording_$(date +%F_%H-%M-%S).mp4"
+
+        case "$choice" in
+            "Area")
+                geometry=$(slurp)
+                wf-recorder -g "$geometry" -f "$filename" &
+                notify-send "Screen Recording" "Recording area..."
+                ;;
+            "Full Screen")
+                wf-recorder -f "$filename" &
+                notify-send "Screen Recording" "Recording full screen..."
+                ;;
+            "Active Window")
+                geometry=$(hyprctl activewindow -j | jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')
+                wf-recorder -g "$geometry" -f "$filename" &
+                notify-send "Screen Recording" "Recording active window..."
+                ;;
+        esac
+    fi
+}
+
+# Color picker
+color_picker() {
+    if command -v hyprpicker &>/dev/null; then
+        color=$(hyprpicker -a)
+        notify-send "Color Picked" "$color (copied to clipboard)"
+    else
+        notify-send "Hyprpicker Not Installed" "Install: paru -S hyprpicker" -u critical
+    fi
+}
+
+# Emoji picker
+emoji_picker() {
+    if command -v rofi-emoji &>/dev/null; then
+        rofi -show emoji
+    elif command -v rofimoji &>/dev/null; then
+        rofimoji
+    else
+        notify-send "Emoji Picker Not Installed" "Install: paru -S rofimoji" -u critical
+    fi
+}
+
+# Calculator
+calculator() {
+    result=$(rofi -show calc -modi calc -no-show-match -no-sort 2>/dev/null || \
+             echo "" | rofi -dmenu -p "Calculate" -theme-str 'window {width: 400px;}')
+
+    if [ -n "$result" ]; then
+        answer=$(echo "$result" | bc -l 2>/dev/null || echo "Error")
+        echo "$answer" | wl-copy
+        notify-send "Calculator" "Result: $answer (copied)"
+    fi
+}
+
+# File search
+file_search() {
+    # Search home directory
+    query=$(rofi -dmenu -p "Search files" -theme-str 'window {width: 600px;}')
+
+    if [ -n "$query" ]; then
+        # Use fd if available, otherwise find
+        if command -v fd &>/dev/null; then
+            results=$(fd -H "$query" "$HOME" 2>/dev/null | head -n 50)
+        else
+            results=$(find "$HOME" -iname "*$query*" 2>/dev/null | head -n 50)
+        fi
+
+        if [ -z "$results" ]; then
+            notify-send "File Search" "No files found"
+            exit 0
+        fi
+
+        file=$(echo "$results" | rofi -dmenu -i -p "Open file" -theme-str 'window {width: 800px;}')
+
+        if [ -n "$file" ]; then
+            if [ -d "$file" ]; then
+                thunar "$file" &
+            else
+                xdg-open "$file" &
+            fi
+        fi
+    fi
+}
+
+# Disk usage
+disk_usage() {
+    info=$(df -h | grep -v "tmpfs\|devtmpfs" | tail -n +2)
+
+    echo "$info" | rofi -dmenu -i -p "Disk Usage" -theme-str 'window {width: 800px;}'
+}
+
+# Network info
+network_info() {
+    info=$(ip -br addr show | grep -v "lo")
+
+    # Add connection info
+    if command -v nmcli &>/dev/null; then
+        wifi=$(nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2)
+        if [ -n "$wifi" ]; then
+            info="Connected to: $wifi\n\n$info"
+        fi
+    fi
+
+    echo -e "$info" | rofi -dmenu -i -p "Network Info" -theme-str 'window {width: 700px;}'
+}
+
+# System info
+system_info() {
+    info=""
+
+    # OS
+    info+="OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2 | tr -d '\"')\n"
+
+    # Kernel
+    info+="Kernel: $(uname -r)\n"
+
+    # Uptime
+    info+="Uptime: $(uptime -p | sed 's/up //')\n"
+
+    # CPU
+    info+="CPU: $(lscpu | grep "Model name" | cut -d: -f2 | xargs)\n"
+
+    # Memory
+    mem_total=$(free -h | awk '/^Mem:/ {print $2}')
+    mem_used=$(free -h | awk '/^Mem:/ {print $3}')
+    info+="Memory: $mem_used / $mem_total\n"
+
+    # Disk
+    disk=$(df -h / | awk 'NR==2 {print $3 " / " $2 " (" $5 " used)"}')
+    info+="Disk: $disk\n"
+
+    # WM
+    info+="WM: Hyprland $(hyprctl version | head -n1 | awk '{print $2}')\n"
+
+    echo -e "$info" | rofi -dmenu -i -p "System Info" -theme-str 'window {width: 700px;}'
+}

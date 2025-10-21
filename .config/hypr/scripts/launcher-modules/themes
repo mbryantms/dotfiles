@@ -1,0 +1,334 @@
+#!/usr/bin/env bash
+# Theme manager - Change wallpapers, color schemes, and styles
+set -euo pipefail
+
+# Main menu
+show_menu() {
+    echo "Change Wallpaper"
+    echo "Random Wallpaper"
+    echo "Color Schemes"
+    echo "GTK Theme"
+    echo "Icon Theme"
+    echo "Cursor Theme"
+    echo "Font Settings"
+    echo "Waybar Style"
+    echo "Rofi Theme"
+    echo "Export Current Theme"
+}
+
+choice=$(show_menu | rofi -dmenu -i -p "Theme Manager" -theme-str 'window {width: 400px;}')
+
+case "$choice" in
+    "Change Wallpaper")
+        change_wallpaper
+        ;;
+    "Random Wallpaper")
+        random_wallpaper
+        ;;
+    "Color Schemes")
+        color_schemes
+        ;;
+    "GTK Theme")
+        gtk_theme
+        ;;
+    "Icon Theme")
+        icon_theme
+        ;;
+    "Cursor Theme")
+        cursor_theme
+        ;;
+    "Font Settings")
+        font_settings
+        ;;
+    "Waybar Style")
+        waybar_style
+        ;;
+    "Rofi Theme")
+        rofi_theme
+        ;;
+    "Export Current Theme")
+        export_theme
+        ;;
+esac
+
+# Change wallpaper
+change_wallpaper() {
+    WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
+
+    if [ ! -d "$WALLPAPER_DIR" ]; then
+        notify-send "Wallpapers Directory Not Found" "Create $WALLPAPER_DIR" -u critical
+        exit 1
+    fi
+
+    # List wallpapers with preview (if using rofi with image support)
+    wallpaper=$(find "$WALLPAPER_DIR" -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.jpeg" \) | \
+        sed "s|$WALLPAPER_DIR/||" | \
+        rofi -dmenu -i -p "Select Wallpaper" -theme-str 'window {width: 600px;}')
+
+    if [ -n "$wallpaper" ]; then
+        ~/.local/bin/set-wall "$WALLPAPER_DIR/$wallpaper"
+    fi
+}
+
+# Random wallpaper
+random_wallpaper() {
+    WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
+
+    if [ ! -d "$WALLPAPER_DIR" ]; then
+        notify-send "Wallpapers Directory Not Found" "Create $WALLPAPER_DIR" -u critical
+        exit 1
+    fi
+
+    wallpaper=$(find "$WALLPAPER_DIR" -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.jpeg" \) | shuf -n 1)
+
+    if [ -n "$wallpaper" ]; then
+        ~/.local/bin/set-wall "$wallpaper"
+        notify-send "Random Wallpaper" "Applied: $(basename "$wallpaper")"
+    fi
+}
+
+# Color schemes
+color_schemes() {
+    schemes="Dark\nLight\nNord\nDracula\nGruvbox\nSolarized Dark\nSolarized Light\nMonokai\nTomorrow Night\nOne Dark"
+
+    choice=$(echo -e "$schemes" | rofi -dmenu -i -p "Color Scheme")
+
+    case "$choice" in
+        "Dark")
+            apply_dark_theme
+            ;;
+        "Light")
+            apply_light_theme
+            ;;
+        "Nord")
+            apply_nord_theme
+            ;;
+        "Dracula")
+            apply_dracula_theme
+            ;;
+        "Gruvbox")
+            apply_gruvbox_theme
+            ;;
+        "Solarized Dark"|"Solarized Light")
+            apply_solarized_theme "${choice#Solarized }"
+            ;;
+        "Monokai")
+            apply_monokai_theme
+            ;;
+        "Tomorrow Night")
+            apply_tomorrow_night_theme
+            ;;
+        "One Dark")
+            apply_one_dark_theme
+            ;;
+    esac
+}
+
+# Apply dark theme
+apply_dark_theme() {
+    # Set GTK theme
+    gsettings set org.gnome.desktop.interface gtk-theme "Adwaita-dark" 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface color-scheme "prefer-dark" 2>/dev/null || true
+
+    # Update Hyprland
+    hyprctl keyword general:col.active_border "rgba(89b4faee)"
+    hyprctl keyword general:col.inactive_border "rgba(313244ee)"
+
+    notify-send "Theme Applied" "Dark theme activated"
+}
+
+# Apply light theme
+apply_light_theme() {
+    gsettings set org.gnome.desktop.interface gtk-theme "Adwaita" 2>/dev/null || true
+    gsettings set org.gnome.desktop.interface color-scheme "prefer-light" 2>/dev/null || true
+
+    hyprctl keyword general:col.active_border "rgba(5e81acee)"
+    hyprctl keyword general:col.inactive_border "rgba(d8dee9ee)"
+
+    notify-send "Theme Applied" "Light theme activated"
+}
+
+# Nord theme
+apply_nord_theme() {
+    hyprctl keyword general:col.active_border "rgba(88c0d0ee)"
+    hyprctl keyword general:col.inactive_border "rgba(4c566aee)"
+
+    notify-send "Theme Applied" "Nord theme activated"
+}
+
+# Dracula theme
+apply_dracula_theme() {
+    hyprctl keyword general:col.active_border "rgba(bd93f9ee)"
+    hyprctl keyword general:col.inactive_border "rgba(44475aee)"
+
+    notify-send "Theme Applied" "Dracula theme activated"
+}
+
+# Gruvbox theme
+apply_gruvbox_theme() {
+    hyprctl keyword general:col.active_border "rgba(fe8019ee)"
+    hyprctl keyword general:col.inactive_border "rgba(3c3836ee)"
+
+    notify-send "Theme Applied" "Gruvbox theme activated"
+}
+
+# Solarized theme
+apply_solarized_theme() {
+    local variant="$1"
+
+    if [ "$variant" = "Dark" ]; then
+        hyprctl keyword general:col.active_border "rgba(268bd2ee)"
+        hyprctl keyword general:col.inactive_border "rgba(073642ee)"
+    else
+        hyprctl keyword general:col.active_border "rgba(268bd2ee)"
+        hyprctl keyword general:col.inactive_border "rgba(fdf6e3ee)"
+    fi
+
+    notify-send "Theme Applied" "Solarized $variant activated"
+}
+
+# Monokai theme
+apply_monokai_theme() {
+    hyprctl keyword general:col.active_border "rgba(f92672ee)"
+    hyprctl keyword general:col.inactive_border "rgba(272822ee)"
+
+    notify-send "Theme Applied" "Monokai theme activated"
+}
+
+# Tomorrow Night theme
+apply_tomorrow_night_theme() {
+    hyprctl keyword general:col.active_border "rgba(81a2beee)"
+    hyprctl keyword general:col.inactive_border "rgba(1d1f21ee)"
+
+    notify-send "Theme Applied" "Tomorrow Night theme activated"
+}
+
+# One Dark theme
+apply_one_dark_theme() {
+    hyprctl keyword general:col.active_border "rgba(61afefee)"
+    hyprctl keyword general:col.inactive_border "rgba(282c34ee)"
+
+    notify-send "Theme Applied" "One Dark theme activated"
+}
+
+# GTK theme
+gtk_theme() {
+    # List installed GTK themes
+    themes=$(find ~/.themes /usr/share/themes -maxdepth 1 -type d 2>/dev/null | \
+        xargs -I {} basename {} | \
+        grep -v "^themes$" | \
+        sort -u)
+
+    choice=$(echo "$themes" | rofi -dmenu -i -p "GTK Theme")
+
+    if [ -n "$choice" ]; then
+        gsettings set org.gnome.desktop.interface gtk-theme "$choice" 2>/dev/null || true
+        notify-send "GTK Theme" "Applied: $choice"
+    fi
+}
+
+# Icon theme
+icon_theme() {
+    # List installed icon themes
+    themes=$(find ~/.icons /usr/share/icons -maxdepth 1 -type d 2>/dev/null | \
+        xargs -I {} basename {} | \
+        grep -v "^icons$" | \
+        sort -u)
+
+    choice=$(echo "$themes" | rofi -dmenu -i -p "Icon Theme")
+
+    if [ -n "$choice" ]; then
+        gsettings set org.gnome.desktop.interface icon-theme "$choice" 2>/dev/null || true
+        notify-send "Icon Theme" "Applied: $choice"
+    fi
+}
+
+# Cursor theme
+cursor_theme() {
+    themes="Adwaita\nBreezeX-RosePine\nBreezeX-Black\nBreezeX-Light\nBibancoWhite\nPosy_Cursor"
+
+    choice=$(echo -e "$themes" | rofi -dmenu -i -p "Cursor Theme")
+
+    if [ -n "$choice" ]; then
+        gsettings set org.gnome.desktop.interface cursor-theme "$choice" 2>/dev/null || true
+        hyprctl setcursor "$choice" 24
+        notify-send "Cursor Theme" "Applied: $choice"
+    fi
+}
+
+# Font settings
+font_settings() {
+    options="Increase Font Size\nDecrease Font Size\nChange Font Family\nReset Font"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Font Settings")
+
+    case "$choice" in
+        "Increase Font Size")
+            current=$(gsettings get org.gnome.desktop.interface font-name 2>/dev/null | grep -o '[0-9]*' | tail -1)
+            new=$((current + 1))
+            gsettings set org.gnome.desktop.interface font-name "Sans $new" 2>/dev/null || true
+            ;;
+        "Decrease Font Size")
+            current=$(gsettings get org.gnome.desktop.interface font-name 2>/dev/null | grep -o '[0-9]*' | tail -1)
+            new=$((current - 1))
+            gsettings set org.gnome.desktop.interface font-name "Sans $new" 2>/dev/null || true
+            ;;
+        "Change Font Family")
+            fonts="Sans\nMonospace\nSerif\nJetBrains Mono\nFira Code\nRoboto\nUbuntu"
+            font=$(echo -e "$fonts" | rofi -dmenu -i -p "Font Family")
+            if [ -n "$font" ]; then
+                gsettings set org.gnome.desktop.interface font-name "$font 10" 2>/dev/null || true
+            fi
+            ;;
+        "Reset Font")
+            gsettings set org.gnome.desktop.interface font-name "Sans 10" 2>/dev/null || true
+            ;;
+    esac
+}
+
+# Waybar style
+waybar_style() {
+    styles="Default\nMinimal\nTransparent\nCompact"
+
+    choice=$(echo -e "$styles" | rofi -dmenu -i -p "Waybar Style")
+
+    # This would require multiple style.css variants
+    notify-send "Waybar Style" "Feature: Create alternate style files"
+}
+
+# Rofi theme
+rofi_theme() {
+    themes=$(rofi-theme-selector -l 2>&1 | grep -v "^$" || ls /usr/share/rofi/themes/ 2>/dev/null | sed 's/.rasi$//')
+
+    choice=$(echo "$themes" | rofi -dmenu -i -p "Rofi Theme")
+
+    if [ -n "$choice" ]; then
+        rofi-theme-selector <<< "$choice"
+    fi
+}
+
+# Export current theme
+export_theme() {
+    EXPORT_DIR="$HOME/.config/hypr/theme-exports"
+    mkdir -p "$EXPORT_DIR"
+
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    export_file="$EXPORT_DIR/theme_$timestamp.conf"
+
+    # Export current Hyprland colors
+    {
+        echo "# Theme exported on $(date)"
+        echo ""
+        echo "general {"
+        echo "    col.active_border = $(hyprctl getoption general:col.active_border | grep -o 'rgba[^)]*)')"
+        echo "    col.inactive_border = $(hyprctl getoption general:col.inactive_border | grep -o 'rgba[^)]*)')"
+        echo "}"
+    } > "$export_file"
+
+    # Copy current wallpaper
+    if [ -L "$HOME/.cache/wal/wal" ]; then
+        cp -L "$HOME/.cache/wal/wal" "$EXPORT_DIR/wallpaper_$timestamp.jpg"
+    fi
+
+    notify-send "Theme Exported" "Saved to: $export_file"
+}
