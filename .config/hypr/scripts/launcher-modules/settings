@@ -1,0 +1,357 @@
+#!/usr/bin/env bash
+# System settings manager
+set -euo pipefail
+
+# Main menu
+show_menu() {
+    echo "Display Settings"
+    echo "Audio Settings"
+    echo "Network Settings"
+    echo "Bluetooth Settings"
+    echo "Power Management"
+    echo "Input Devices"
+    echo "Hyprland Settings"
+    echo "Startup Applications"
+}
+
+choice=$(show_menu | rofi -dmenu -i -p "System Settings" -theme-str 'window {width: 400px;}')
+
+case "$choice" in
+    "Display Settings")
+        display_settings
+        ;;
+    "Audio Settings")
+        pavucontrol &
+        ;;
+    "Network Settings")
+        nm-connection-editor &
+        ;;
+    "Bluetooth Settings")
+        blueman-manager &
+        ;;
+    "Power Management")
+        power_management
+        ;;
+    "Input Devices")
+        input_settings
+        ;;
+    "Hyprland Settings")
+        hyprland_settings
+        ;;
+    "Startup Applications")
+        startup_apps
+        ;;
+esac
+
+# Display settings
+display_settings() {
+    options="Monitor Configuration\nResolution\nRefresh Rate\nScale\nRotation\nMirror Displays"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Display")
+
+    case "$choice" in
+        "Monitor Configuration")
+            kitty --hold bash -c "hyprctl monitors && echo -e '\nEdit: ~/.config/hypr/conf.d/45-monitors.conf'" &
+            ;;
+        "Resolution")
+            change_resolution
+            ;;
+        "Refresh Rate")
+            change_refresh_rate
+            ;;
+        "Scale")
+            change_scale
+            ;;
+        "Rotation")
+            change_rotation
+            ;;
+        "Mirror Displays")
+            notify-send "Mirror Displays" "Edit ~/.config/hypr/conf.d/45-monitors.conf manually"
+            ;;
+    esac
+}
+
+# Change resolution
+change_resolution() {
+    # Get active monitor
+    monitor=$(hyprctl monitors -j | jq -r '.[0].name')
+
+    resolutions="1920x1080\n2560x1440\n3840x2160\n1366x768\n1600x900"
+
+    res=$(echo -e "$resolutions" | rofi -dmenu -i -p "Resolution for $monitor")
+
+    if [ -n "$res" ]; then
+        hyprctl keyword monitor "$monitor,$res@60,auto,1"
+        notify-send "Display" "Resolution changed to $res"
+    fi
+}
+
+# Change refresh rate
+change_refresh_rate() {
+    monitor=$(hyprctl monitors -j | jq -r '.[0].name')
+
+    rates="60\n75\n120\n144\n165\n240"
+
+    rate=$(echo -e "$rates" | rofi -dmenu -i -p "Refresh Rate (Hz)")
+
+    if [ -n "$rate" ]; then
+        current_res=$(hyprctl monitors -j | jq -r '.[0].width')x$(hyprctl monitors -j | jq -r '.[0].height')
+        hyprctl keyword monitor "$monitor,$current_res@$rate,auto,1"
+        notify-send "Display" "Refresh rate changed to ${rate}Hz"
+    fi
+}
+
+# Change scale
+change_scale() {
+    monitor=$(hyprctl monitors -j | jq -r '.[0].name')
+
+    scales="1.0\n1.25\n1.5\n1.75\n2.0"
+
+    scale=$(echo -e "$scales" | rofi -dmenu -i -p "Display Scale")
+
+    if [ -n "$scale" ]; then
+        current_res=$(hyprctl monitors -j | jq -r '.[0].width')x$(hyprctl monitors -j | jq -r '.[0].height')
+        hyprctl keyword monitor "$monitor,$current_res,auto,$scale"
+        notify-send "Display" "Scale changed to $scale"
+    fi
+}
+
+# Change rotation
+change_rotation() {
+    monitor=$(hyprctl monitors -j | jq -r '.[0].name')
+
+    rotations="0 (Normal)\n90 (Right)\n180 (Inverted)\n270 (Left)"
+
+    choice=$(echo -e "$rotations" | rofi -dmenu -i -p "Rotation")
+
+    if [ -n "$choice" ]; then
+        rotation=$(echo "$choice" | awk '{print $1}')
+        current_res=$(hyprctl monitors -j | jq -r '.[0].width')x$(hyprctl monitors -j | jq -r '.[0].height')
+        hyprctl keyword monitor "$monitor,$current_res,auto,1,transform,$rotation"
+        notify-send "Display" "Rotation changed"
+    fi
+}
+
+# Power management
+power_management() {
+    options="Idle Timeout Settings\nScreen Lock Timer\nSleep Settings\nPower Profile"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Power Management")
+
+    case "$choice" in
+        "Idle Timeout Settings")
+            edit_hypridle
+            ;;
+        "Screen Lock Timer")
+            change_lock_timer
+            ;;
+        "Sleep Settings")
+            notify-send "Sleep Settings" "Edit ~/.config/hypr/hypridle.conf"
+            ;;
+        "Power Profile")
+            change_power_profile
+            ;;
+    esac
+}
+
+# Edit hypridle config
+edit_hypridle() {
+    kitty nvim ~/.config/hypr/hypridle.conf &
+}
+
+# Change lock timer
+change_lock_timer() {
+    times="1 minute\n5 minutes\n10 minutes\n15 minutes\n30 minutes\nNever"
+
+    choice=$(echo -e "$times" | rofi -dmenu -i -p "Lock Screen After")
+
+    case "$choice" in
+        "1 minute")
+            timeout=60
+            ;;
+        "5 minutes")
+            timeout=300
+            ;;
+        "10 minutes")
+            timeout=600
+            ;;
+        "15 minutes")
+            timeout=900
+            ;;
+        "30 minutes")
+            timeout=1800
+            ;;
+        "Never")
+            notify-send "Lock Timer" "Disable auto-lock in hypridle.conf"
+            return
+            ;;
+    esac
+
+    notify-send "Lock Timer" "Edit timeout in hypridle.conf to $timeout seconds"
+}
+
+# Change power profile
+change_power_profile() {
+    if command -v powerprofilesctl &>/dev/null; then
+        profiles=$(powerprofilesctl list | grep -v "^$")
+        choice=$(echo "$profiles" | rofi -dmenu -i -p "Power Profile")
+
+        if [ -n "$choice" ]; then
+            profile=$(echo "$choice" | awk '{print $1}' | tr -d ':')
+            powerprofilesctl set "$profile"
+            notify-send "Power Profile" "Changed to: $profile"
+        fi
+    else
+        notify-send "Power Profiles" "power-profiles-daemon not installed"
+    fi
+}
+
+# Input settings
+input_settings() {
+    options="Keyboard Layout\nKeyboard Repeat\nMouse Settings\nTouchpad Settings"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Input Devices")
+
+    case "$choice" in
+        "Keyboard Layout")
+            change_keyboard_layout
+            ;;
+        "Keyboard Repeat")
+            change_keyboard_repeat
+            ;;
+        "Mouse Settings")
+            change_mouse_settings
+            ;;
+        "Touchpad Settings")
+            change_touchpad_settings
+            ;;
+    esac
+}
+
+# Change keyboard layout
+change_keyboard_layout() {
+    layouts="us\nus-intl\nuk\nde\nfr\nes\nru\njp"
+
+    layout=$(echo -e "$layouts" | rofi -dmenu -i -p "Keyboard Layout")
+
+    if [ -n "$layout" ]; then
+        hyprctl keyword input:kb_layout "$layout"
+        notify-send "Keyboard" "Layout changed to: $layout"
+    fi
+}
+
+# Change keyboard repeat
+change_keyboard_repeat() {
+    rates="25\n35\n50\n75"
+    delays="300\n500\n750"
+
+    rate=$(echo -e "$rates" | rofi -dmenu -i -p "Repeat Rate")
+    delay=$(echo -e "$delays" | rofi -dmenu -i -p "Repeat Delay")
+
+    if [ -n "$rate" ] && [ -n "$delay" ]; then
+        hyprctl keyword input:repeat_rate "$rate"
+        hyprctl keyword input:repeat_delay "$delay"
+        notify-send "Keyboard" "Repeat configured"
+    fi
+}
+
+# Mouse settings
+change_mouse_settings() {
+    options="Mouse Sensitivity\nMouse Acceleration\nNatural Scrolling"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Mouse")
+
+    case "$choice" in
+        "Mouse Sensitivity")
+            sens=$(echo -e "-1.0\n-0.5\n0.0\n0.5\n1.0" | rofi -dmenu -i -p "Sensitivity")
+            if [ -n "$sens" ]; then
+                hyprctl keyword input:sensitivity "$sens"
+                notify-send "Mouse" "Sensitivity: $sens"
+            fi
+            ;;
+        "Mouse Acceleration")
+            accel=$(echo -e "on\noff" | rofi -dmenu -i -p "Acceleration")
+            if [ "$accel" = "on" ]; then
+                hyprctl keyword input:accel_profile "adaptive"
+            else
+                hyprctl keyword input:accel_profile "flat"
+            fi
+            ;;
+        "Natural Scrolling")
+            natural=$(echo -e "on\noff" | rofi -dmenu -i -p "Natural Scrolling")
+            if [ "$natural" = "on" ]; then
+                hyprctl keyword input:natural_scroll 1
+            else
+                hyprctl keyword input:natural_scroll 0
+            fi
+            ;;
+    esac
+}
+
+# Touchpad settings
+change_touchpad_settings() {
+    options="Enable/Disable\nTap to Click\nNatural Scrolling\nTwo-Finger Scrolling"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Touchpad")
+
+    case "$choice" in
+        "Enable/Disable")
+            state=$(echo -e "Enable\nDisable" | rofi -dmenu -i -p "Touchpad")
+            if [ "$state" = "Enable" ]; then
+                hyprctl keyword input:touchpad:enabled true
+            else
+                hyprctl keyword input:touchpad:enabled false
+            fi
+            ;;
+        "Tap to Click")
+            tap=$(echo -e "on\noff" | rofi -dmenu -i -p "Tap to Click")
+            hyprctl keyword input:touchpad:tap-to-click $([ "$tap" = "on" ] && echo "true" || echo "false")
+            ;;
+        "Natural Scrolling")
+            natural=$(echo -e "on\noff" | rofi -dmenu -i -p "Natural Scrolling")
+            hyprctl keyword input:touchpad:natural_scroll $([ "$natural" = "on" ] && echo "true" || echo "false")
+            ;;
+    esac
+}
+
+# Hyprland settings
+hyprland_settings() {
+    options="Animations\nBorder Size\nGaps\nRounding\nBlur\nShadows"
+
+    choice=$(echo -e "$options" | rofi -dmenu -i -p "Hyprland")
+
+    case "$choice" in
+        "Animations")
+            anim=$(echo -e "Enable\nDisable" | rofi -dmenu -i -p "Animations")
+            hyprctl keyword animations:enabled $([ "$anim" = "Enable" ] && echo "true" || echo "false")
+            ;;
+        "Border Size")
+            size=$(echo -e "1\n2\n3\n4\n5" | rofi -dmenu -i -p "Border Size")
+            [ -n "$size" ] && hyprctl keyword general:border_size "$size"
+            ;;
+        "Gaps")
+            gaps=$(echo -e "0\n4\n8\n12\n16\n20" | rofi -dmenu -i -p "Gaps Size")
+            if [ -n "$gaps" ]; then
+                hyprctl keyword general:gaps_in "$gaps"
+                hyprctl keyword general:gaps_out "$((gaps * 2))"
+            fi
+            ;;
+        "Rounding")
+            round=$(echo -e "0\n4\n8\n12\n16" | rofi -dmenu -i -p "Rounding")
+            [ -n "$round" ] && hyprctl keyword decoration:rounding "$round"
+            ;;
+        "Blur")
+            blur=$(echo -e "Enable\nDisable" | rofi -dmenu -i -p "Blur")
+            hyprctl keyword decoration:blur:enabled $([ "$blur" = "Enable" ] && echo "true" || echo "false")
+            ;;
+        "Shadows")
+            shadow=$(echo -e "Enable\nDisable" | rofi -dmenu -i -p "Drop Shadow")
+            hyprctl keyword decoration:drop_shadow $([ "$shadow" = "Enable" ] && echo "true" || echo "false")
+            ;;
+    esac
+}
+
+# Startup applications
+startup_apps() {
+    kitty nvim ~/.config/hypr/conf.d/50-autostart.conf &
+}

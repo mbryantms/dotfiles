@@ -1,14 +1,183 @@
-/* Import pywal colors (generated symlink or copy) */
+/* Import pywal colors */
 @import url("wal.css");
 
 
-window#waybar {
-background: var(--background);
-color: var(--foreground);
-font-family: "JetBrainsMono Nerd Font", monospace;
-font-size: 12.5px;
+* {
+    font-family: "JetBrainsMono Nerd Font", "Font Awesome 6 Free", monospace;
+    font-size: 13px;
+    font-weight: bold;
+    border: none;
+    border-radius: 0;
+    min-height: 0;
 }
 
 
-#workspaces button.focused { background: var(--color1); color: var(--background); }
-#pulseaudio, #cpu, #memory, #clock { padding: 0 10px; }
+window#waybar {
+    background: transparent;
+}
+
+
+#workspaces,
+#window,
+#clock,
+#network,
+#bluetooth,
+#pulseaudio,
+#cpu,
+#memory,
+#temperature,
+#backlight,
+#battery,
+#tray {
+    background: var(--background);
+    color: var(--foreground);
+    padding: 0 12px;
+    margin: 4px 0;
+}
+
+
+#workspaces {
+    padding: 0;
+    margin: 4px 4px 4px 8px;
+}
+
+
+#workspaces button {
+    padding: 0 8px;
+    color: var(--foreground);
+    background: transparent;
+    border-radius: 0;
+}
+
+
+#workspaces button.active {
+    background: var(--color4);
+    color: var(--background);
+}
+
+
+#workspaces button.urgent {
+    background: var(--color1);
+    color: var(--background);
+}
+
+
+#workspaces button:hover {
+    background: var(--color8);
+    color: var(--foreground);
+}
+
+
+#window {
+    margin: 4px 8px;
+    padding: 0 16px;
+}
+
+
+#clock {
+    margin: 4px 8px;
+    padding: 0 16px;
+    background: var(--color4);
+    color: var(--background);
+}
+
+
+#network {
+    color: var(--color4);
+}
+
+
+#bluetooth {
+    color: var(--color4);
+}
+
+
+#pulseaudio {
+    color: var(--color2);
+}
+
+
+#pulseaudio.muted {
+    color: var(--color1);
+}
+
+
+#cpu {
+    color: var(--color3);
+}
+
+
+#memory {
+    color: var(--color5);
+}
+
+
+#temperature {
+    color: var(--color6);
+}
+
+
+#temperature.critical {
+    color: var(--color1);
+    animation: blink 1s linear infinite;
+}
+
+
+#backlight {
+    color: var(--color3);
+}
+
+
+#battery {
+    color: var(--color2);
+}
+
+
+#battery.charging {
+    color: var(--color4);
+}
+
+
+#battery.warning:not(.charging) {
+    color: var(--color3);
+}
+
+
+#battery.critical:not(.charging) {
+    color: var(--color1);
+    animation: blink 1s linear infinite;
+}
+
+
+#tray {
+    margin: 4px 8px 4px 4px;
+}
+
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+}
+
+
+@keyframes blink {
+    50% {
+        opacity: 0.5;
+    }
+}
+
+
+tooltip {
+    background: var(--background);
+    border: 2px solid var(--color4);
+    border-radius: 8px;
+}
+
+
+tooltip label {
+    color: var(--foreground);
+}

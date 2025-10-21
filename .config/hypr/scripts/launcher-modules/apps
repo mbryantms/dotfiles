@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+# Application launcher - GUI and TUI apps
+set -euo pipefail
+
+# Categories
+show_category_menu() {
+    echo "All Applications"
+    echo "GUI Applications"
+    echo "Terminal Applications (TUI)"
+    echo "Development"
+    echo "Internet"
+    echo "Multimedia"
+    echo "Office"
+    echo "System Tools"
+    echo "Favorites"
+}
+
+category=$(show_category_menu | rofi -dmenu -i -p "Applications" -theme-str 'window {width: 400px;}')
+
+case "$category" in
+    "All Applications")
+        rofi -show drun
+        ;;
+    "GUI Applications")
+        rofi -show drun -show-icons
+        ;;
+    "Terminal Applications (TUI)")
+        show_tui_apps
+        ;;
+    "Development")
+        show_dev_apps
+        ;;
+    "Internet")
+        show_internet_apps
+        ;;
+    "Multimedia")
+        show_multimedia_apps
+        ;;
+    "Office")
+        show_office_apps
+        ;;
+    "System Tools")
+        show_system_apps
+        ;;
+    "Favorites")
+        show_favorites
+        ;;
+esac
+
+# TUI Applications
+show_tui_apps() {
+    apps=(
+        "htop:Resource Monitor"
+        "btop:Modern Resource Monitor"
+        "nvim:Neovim Editor"
+        "vim:Vim Editor"
+        "ranger:File Manager"
+        "yazi:Modern File Manager"
+        "ncmpcpp:Music Player"
+        "cmus:Music Player"
+        "newsboat:RSS Reader"
+        "weechat:IRC Client"
+        "mutt:Email Client"
+        "neomutt:Email Client"
+        "calcurse:Calendar"
+        "taskwarrior:Task Manager"
+    )
+
+    menu=""
+    for app in "${apps[@]}"; do
+        cmd="${app%%:*}"
+        desc="${app##*:}"
+        if command -v "$cmd" &>/dev/null; then
+            menu+="$desc ($cmd)\n"
+        fi
+    done
+
+    choice=$(echo -e "$menu" | rofi -dmenu -i -p "Terminal Apps")
+
+    if [ -n "$choice" ]; then
+        cmd=$(echo "$choice" | sed 's/.*(\(.*\))/\1/')
+        kitty "$cmd" &
+    fi
+}
+
+# Development Apps
+show_dev_apps() {
+    apps=(
+        "code:Visual Studio Code"
+        "nvim:Neovim"
+        "vim:Vim"
+        "sublime:Sublime Text"
+        "geany:Geany IDE"
+        "jetbrains-toolbox:JetBrains Toolbox"
+        "dbeaver:Database Tool"
+        "postman:API Client"
+        "insomnia:API Client"
+        "gitg:Git GUI"
+        "lazygit:Terminal Git UI"
+    )
+
+    launch_from_list "${apps[@]}"
+}
+
+# Internet Apps
+show_internet_apps() {
+    apps=(
+        "firefox:Firefox Browser"
+        "chromium:Chromium Browser"
+        "brave:Brave Browser"
+        "thunderbird:Email Client"
+        "discord:Discord"
+        "slack:Slack"
+        "teams:Microsoft Teams"
+        "zoom:Zoom"
+        "transmission-gtk:Torrent Client"
+        "filezilla:FTP Client"
+    )
+
+    launch_from_list "${apps[@]}"
+}
+
+# Multimedia Apps
+show_multimedia_apps() {
+    apps=(
+        "mpv:Video Player"
+        "vlc:VLC Media Player"
+        "spotify:Spotify"
+        "gimp:Image Editor"
+        "inkscape:Vector Graphics"
+        "krita:Digital Painting"
+        "kdenlive:Video Editor"
+        "obs:OBS Studio"
+        "audacity:Audio Editor"
+        "blender:3D Graphics"
+    )
+
+    launch_from_list "${apps[@]}"
+}
+
+# Office Apps
+show_office_apps() {
+    apps=(
+        "libreoffice-writer:Writer"
+        "libreoffice-calc:Calc"
+        "libreoffice-impress:Impress"
+        "okular:PDF Viewer"
+        "evince:Document Viewer"
+        "calibre:E-book Manager"
+        "zathura:PDF Viewer (vim-like)"
+    )
+
+    launch_from_list "${apps[@]}"
+}
+
+# System Tools
+show_system_apps() {
+    apps=(
+        "thunar:File Manager"
+        "dolphin:KDE File Manager"
+        "gnome-disks:Disk Utility"
+        "gparted:Partition Editor"
+        "baobab:Disk Usage Analyzer"
+        "pavucontrol:Volume Control"
+        "blueman-manager:Bluetooth Manager"
+        "nm-connection-editor:Network Manager"
+        "htop:System Monitor"
+        "btop:System Monitor (Modern)"
+    )
+
+    launch_from_list "${apps[@]}"
+}
+
+# Favorites
+show_favorites() {
+    # Read from favorites file or use defaults
+    FAVORITES_FILE="$HOME/.config/hypr/launcher-favorites"
+
+    if [ -f "$FAVORITES_FILE" ]; then
+        menu=$(cat "$FAVORITES_FILE")
+    else
+        # Default favorites
+        menu="Firefox\nKitty\nThunar\nVisual Studio Code\nSpotify"
+    fi
+
+    choice=$(echo -e "$menu" | rofi -dmenu -i -p "Favorites")
+
+    if [ -n "$choice" ]; then
+        # Launch the app (convert to lowercase command)
+        cmd=$(echo "$choice" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+        $cmd &>/dev/null &
+    fi
+}
+
+# Generic launcher from list
+launch_from_list() {
+    local apps=("$@")
+    local menu=""
+
+    for app in "${apps[@]}"; do
+        cmd="${app%%:*}"
+        desc="${app##*:}"
+        if command -v "$cmd" &>/dev/null; then
+            menu+="$desc\n"
+        fi
+    done
+
+    choice=$(echo -e "$menu" | rofi -dmenu -i -p "Select App")
+
+    if [ -n "$choice" ]; then
+        # Find the command for the chosen description
+        for app in "${apps[@]}"; do
+            if [[ "$app" == *"$choice"* ]]; then
+                cmd="${app%%:*}"
+                $cmd &>/dev/null &
+                break
+            fi
+        done
+    fi
+}

@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Universal clipboard helper for Hyprland
+# Detects terminal windows and sends appropriate key combinations
+set -euo pipefail
+
+ACTION="${1:-}"
+
+# Get active window class and title
+WINDOW_INFO=$(hyprctl activewindow -j 2>/dev/null || echo '{"class":"","title":""}')
+WINDOW_CLASS=$(echo "$WINDOW_INFO" | jq -r '.class')
+WINDOW_TITLE=$(echo "$WINDOW_INFO" | jq -r '.title')
+
+# List of terminal emulator classes (add more as needed)
+TERMINAL_CLASSES=(
+    "kitty"
+    "Alacritty"
+    "org.wezfurlong.wezterm"
+    "foot"
+    "footclient"
+    "termite"
+    "st"
+    "URxvt"
+    "konsole"
+    "gnome-terminal"
+    "xfce4-terminal"
+    "terminator"
+    "tilix"
+    "tmux"
+    "screen"
+)
+
+# Check if current window is a terminal
+is_terminal=false
+for term in "${TERMINAL_CLASSES[@]}"; do
+    if [[ "$WINDOW_CLASS" =~ $term ]] || [[ "$WINDOW_TITLE" =~ $term ]]; then
+        is_terminal=true
+        break
+    fi
+done
+
+# Function to send keys using wtype (preferred) or ydotool (fallback)
+send_keys() {
+    local keys="$1"
+
+    if command -v wtype &>/dev/null; then
+        # Use wtype (preferred - no daemon needed)
+        wtype $keys
+    elif command -v ydotool &>/dev/null; then
+        # Fallback to ydotool
+        # Note: ydotoold daemon must be running
+        ydotool key $keys
+    else
+        notify-send "Clipboard Error" "Neither wtype nor ydotool is installed" -u critical
+        exit 1
+    fi
+}
+
+# Send appropriate key combination based on action and window type
+case "$ACTION" in
+    copy)
+        if [ "$is_terminal" = true ]; then
+            # Terminal: Ctrl+Shift+C
+            send_keys "-M ctrl -M shift c -m shift -m ctrl"
+        else
+            # Non-terminal: Ctrl+C
+            send_keys "-M ctrl c -m ctrl"
+        fi
+        ;;
+    paste)
+        if [ "$is_terminal" = true ]; then
+            # Terminal: Ctrl+Shift+V
+            send_keys "-M ctrl -M shift v -m shift -m ctrl"
+        else
+            # Non-terminal: Ctrl+V
+            send_keys "-M ctrl v -m ctrl"
+        fi
+        ;;
+    cut)
+        # Cut doesn't work in terminals, only in GUI apps
+        if [ "$is_terminal" = false ]; then
+            # Non-terminal: Ctrl+X
+            send_keys "-M ctrl x -m ctrl"
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {copy|paste|cut}" >&2
+        exit 1
+        ;;
+esac

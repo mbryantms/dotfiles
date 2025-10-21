@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# Advanced screenshot utility for Hyprland
+# Uses grimblast if available (recommended), falls back to grim+slurp
+set -euo pipefail
+
+# Ensure Screenshots directory exists
+SCREENSHOT_DIR="$HOME/Pictures/Screenshots"
+mkdir -p "$SCREENSHOT_DIR"
+
+# Get timestamp for filename
+timestamp=$(date +%F_%H-%M-%S)
+filename="$SCREENSHOT_DIR/screenshot_${timestamp}.png"
+
+# Parse arguments
+mode="${1:-menu}"      # area, active, screen, menu
+action="${2:-save}"    # save, clipboard, both
+
+# Function to send notification
+notify_screenshot() {
+    local action="$1"
+    local file="$2"
+
+    if [ "$action" = "clipboard" ]; then
+        notify-send "Screenshot copied to clipboard" -i "$file" -t 3000
+    elif [ "$action" = "save" ]; then
+        notify-send "Screenshot saved" "$file" -i "$file" -t 3000
+    elif [ "$action" = "both" ]; then
+        notify-send "Screenshot saved & copied" "$file" -i "$file" -t 3000
+    fi
+}
+
+# Function to take screenshot with grimblast
+screenshot_grimblast() {
+    local mode="$1"
+    local action="$2"
+
+    case "$action" in
+        clipboard)
+            grimblast --notify copy "$mode"
+            ;;
+        save)
+            grimblast --notify --cursor save "$mode" "$filename"
+            ;;
+        both)
+            grimblast --notify --cursor copysave "$mode" "$filename"
+            ;;
+    esac
+}
+
+# Function to take screenshot with grim+slurp (fallback)
+screenshot_grim() {
+    local mode="$1"
+    local action="$2"
+
+    case "$mode" in
+        area)
+            if [ "$action" = "clipboard" ]; then
+                grim -g "$(slurp)" - | wl-copy
+                notify_screenshot "clipboard" "/tmp/screenshot.png"
+            elif [ "$action" = "save" ]; then
+                grim -g "$(slurp)" "$filename"
+                notify_screenshot "save" "$filename"
+            elif [ "$action" = "both" ]; then
+                grim -g "$(slurp)" "$filename"
+                wl-copy < "$filename"
+                notify_screenshot "both" "$filename"
+            fi
+            ;;
+        active)
+            # Get active window geometry
+            geometry=$(hyprctl activewindow -j | jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')
+            if [ "$action" = "clipboard" ]; then
+                grim -g "$geometry" - | wl-copy
+                notify_screenshot "clipboard" "/tmp/screenshot.png"
+            elif [ "$action" = "save" ]; then
+                grim -g "$geometry" "$filename"
+                notify_screenshot "save" "$filename"
+            elif [ "$action" = "both" ]; then
+                grim -g "$geometry" "$filename"
+                wl-copy < "$filename"
+                notify_screenshot "both" "$filename"
+            fi
+            ;;
+        screen)
+            if [ "$action" = "clipboard" ]; then
+                grim - | wl-copy
+                notify_screenshot "clipboard" "/tmp/screenshot.png"
+            elif [ "$action" = "save" ]; then
+                grim "$filename"
+                notify_screenshot "save" "$filename"
+            elif [ "$action" = "both" ]; then
+                grim "$filename"
+                wl-copy < "$filename"
+                notify_screenshot "both" "$filename"
+            fi
+            ;;
+    esac
+}
+
+# Show interactive menu if mode is "menu"
+if [ "$mode" = "menu" ]; then
+    choice=$(echo -e "Area (selection)\nActive Window\nFull Screen\nArea → Editor" | \
+        rofi -dmenu -i -p "Screenshot" -theme-str 'window {width: 300px;}')
+
+    case "$choice" in
+        "Area (selection)")
+            mode="area"
+            action="both"
+            ;;
+        "Active Window")
+            mode="active"
+            action="both"
+            ;;
+        "Full Screen")
+            mode="screen"
+            action="both"
+            ;;
+        "Area → Editor")
+            # Open in swappy if available
+            if command -v swappy &>/dev/null; then
+                if command -v grimblast &>/dev/null; then
+                    grimblast save area - | swappy -f -
+                else
+                    grim -g "$(slurp)" - | swappy -f -
+                fi
+            else
+                notify-send "Error" "swappy not installed" -u critical
+            fi
+            exit 0
+            ;;
+        *)
+            exit 1
+            ;;
+    esac
+fi
+
+# Take screenshot using available tool
+if command -v grimblast &>/dev/null; then
+    screenshot_grimblast "$mode" "$action"
+else
+    if ! command -v grim &>/dev/null || ! command -v slurp &>/dev/null; then
+        notify-send "Error" "Neither grimblast nor grim+slurp is installed" -u critical
+        exit 1
+    fi
+    screenshot_grim "$mode" "$action"
+fi

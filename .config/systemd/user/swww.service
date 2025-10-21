@@ -1,11 +1,15 @@
 [Unit]
 Description=swww daemon (Wayland wallpaper)
+After=graphical-session.target
+PartOf=graphical-session.target
 
 
 [Service]
-ExecStart=swww-daemon --no-cache
+Type=simple
+ExecStart=/usr/bin/swww-daemon --no-cache
 Restart=on-failure
+RestartSec=3
 
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target
